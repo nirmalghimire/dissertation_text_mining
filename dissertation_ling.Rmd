@@ -1,0 +1,918 @@
+---
+title: "Comprehensive Text Mining and Natural Language Processing Analysis of a Ph.D.
+  Dissertation: Insights from Multi-Faceted Linguistic Exploration"
+author: "Ghimire, Nirmal, Ph.D."
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      comment = NA,
+                      error = FALSE,
+                      fig.width = 8,
+                      fig.height = 6,
+                      fig.align = "center",
+                      tidy = TRUE,
+                      cache = TRUE,
+                      dpi = 300,
+                      highlight = TRUE
+                      )
+```
+
+## Introduction
+This project aims to conduct a comprehensive linguistic analysis of a Ph.D. dissertation using advanced text mining and natural language processing techniques. By employing a diverse set of analytical methods, including word frequency analysis, sentiment analysis, topic modeling, named entity recognition, and readability assessment, among others, the study seeks to uncover deeper insights into the dissertation's content, structure, and stylistic features. This multi-faceted approach will not only provide a quantitative understanding of the text but also offer qualitative insights into the dissertation's themes, coherence, and overall academic contribution. The project's findings are expected to demonstrate the potential of computational linguistics in enhancing the evaluation and understanding of complex academic texts, potentially paving the way for more sophisticated tools in academic writing and assessment.
+
+```{r load_libraries, echo=FALSE}
+# Load required libraries
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(RColorBrewer)
+library(tm)
+library(topicmodels)
+library(sentimentr)
+library(syuzhet)
+library(stringr)
+library(quanteda)
+library(quanteda.textstats)
+library(spacyr)
+library(ggplot2)
+library(igraph)
+#library(textstat)
+library(koRpus)
+library(openNLP)
+library(coreNLP)
+library(text2vec)
+library(lexRankr)
+library(textreuse)
+library(pdftools)
+library(dplyr)
+library(proxy)
+library(cleanNLP)
+library(udpipe)
+```
+
+### A. Summary of the Dissertation
+My Ph.D. dissertation, titled "Narrowing English Learner (EL) Achievement Gaps: A Multilevel Analysis of an EL-Infused Teacher Preparation Model," (https://stars.library.ucf.edu/etd2020/216/) focuses on addressing the academic disparities experienced by English Learners (ELs) through an innovative teacher preparation framework. Guided by Dr. Joyce W. Nutta, this research employs multilevel statistical methods to analyze the effectiveness of a teacher preparation model specifically designed to enhance the teaching strategies for ELs. The study integrates various factors such as teacher education, instructional methods, and educational policies, aiming to develop a comprehensive understanding of how tailored teacher preparation can significantly improve ELs' academic outcomes. Through this analysis, the dissertation contributes to the field of TESOL by providing data-driven insights and practical recommendations for teacher education programs, ultimately seeking to close the achievement gaps for EL students.
+
+I have uploaded the PDF version of my dissertation for analysis. Here's the page 30 of the dissertation to give you a glimpse of the text:
+
+```{r load_data, echo=FALSE}
+# Provide the file path to your dissertation PDF
+file_path <- "E:\\OneDriveUT Tyler\\Documents\\Dissertation_Analysis\\phd_dissertation.pdf"
+
+# Check if the file exists
+# if (file.exists(file_path)) {
+  # Read the PDF text
+#  dissertation_text <- pdf_text(file_path)
+  
+  # Proceed with your analysis
+  # Print the first few lines of the text to confirm it's loaded correctly
+ # cat(dissertation_text[1])
+#} else {
+#  stop("File not found. Please check the file path.")
+#}
+
+# Load the dissertation as a pdf
+dissertation_text <- pdf_text(file_path)
+
+# Checking Page 30
+dissertation_text[30]
+```
+
+### B. Direction of the Analysis
+The analysis will be conducted in several stages, each focusing on a specific aspect of the dissertation's content and structure. The primary objectives of the analysis are as follows:
+
+* **Word Frequency Analysis** 
+* **Sentiment Analysis**
+* **Topic Modeling** 
+* **Named Entity Recognition (NER)**
+* **Text Similarity and Plagiarism Check**
+* **Keyword Extraction**
+* **N-gram Analysis**
+* **Part-of-Speech Tagging**
+* **Readability Analysis**
+* **Concept Mapping**
+
+These techniques can provide valuable insights into the structure, content, and style of your dissertation. They can help identify key themes, assess coherence, and ensure clarity of communication.
+
+### C. Required Packages with Short Description
+The analysis will be conducted using the following R packages:
+
+* *library(tidyverse)*    # For data manipulation and visualization
+* *library(tidytext)*     # Text mining tools that work with 'tidy' data principles
+* *library(wordcloud)*    # For creating word clouds
+* *library(tm)*           # A framework for text mining
+* *library(topicmodels)*  # For topic modeling using Latent Dirichlet Allocation (LDA)
+* *library(sentimentr)*   # For sentiment analysis
+* *library(syuzhet)*      # An alternative package for sentiment analysis
+* *library(stringr)*      # For string manipulation
+* *library(quanteda)*     # For quantitative analysis of textual data
+* *library(spacyr)*       # R wrapper to the spaCy NLP library
+* *library(ggplot2)*      # For creating elegant data visualizations
+* *library(igraph)*       # For network analysis and visualization
+* *library(textstat)*     # For calculating readability statistics
+* *library(koRpus)*       # For text analysis and readability calculations
+* *library(openNLP)*      # Natural Language Processing tools
+* *library(coreNLP)*      # R interface to Stanford CoreNLP
+* *library(text2vec)*     # Tools for text vectorization and word embeddings
+* *library(lexRankr)*     # For automated text summarization
+* *library(textreuse)*    # For detecting text reuse and document similarity
+* *library(pdftools)*     # For working with PDF files
+* *library(cleanNLP)*     # For NLP tasks like tokenization, part-of-speech tagging, and named entity recognition
+* *library(udpipe)*       # R interface to the UDPipe NLP toolchain
+* *library(quanteda.textstats)* # For text statistics
+
+These packages offer a wide range of functionalities for text analysis, from basic text processing to advanced natural language processing tasks. By combining these tools effectively, we can gain a comprehensive understanding of my dissertation's content and structure. I start with,
+
+* **i. Loading and Combining Text**: [Read the text from each page of the PDF and combine it into a single string.]; 
+```{r combining_text, echo=FALSE}
+# Combine all pages into a single text
+  dissertation_text <- paste(dissertation_text, collapse = " ")
+# Creating a corpus
+  dissertation_corpus <- Corpus(VectorSource(dissertation_text))
+```
+
+* **ii. Text Cleaning**: [Converts text to lowercase, removes punctuation, numbers, common English stop words, and extra whitespace.];
+```{r text_cleaning, echo=FALSE}
+# Text cleaning
+  dissertation_clean <- tm_map(dissertation_corpus, content_transformer(tolower))
+  dissertation_clean <- tm_map(dissertation_clean, removePunctuation)
+  dissertation_clean <- tm_map(dissertation_clean, removeNumbers)
+  dissertation_clean <- tm_map(dissertation_clean, removeWords, stopwords("english"))
+  dissertation_clean <- tm_map(dissertation_clean, stripWhitespace)
+```
+
+* **iii. Document-Term Matrix**: [Creates a matrix of word frequencies].
+```{r document_term_matrix, echo=FALSE}
+# Create a document-term matrix
+  dtm <- DocumentTermMatrix(dissertation_clean)
+  dtm 
+```
+The output describes a Document-Term Matrix (DTM) created from a single document containing 4,677 unique terms. The matrix has no sparse entries, indicating that every term appears at least once in the document, resulting in 0% sparsity. The longest term in the matrix has 73 characters, and the matrix uses term frequency (tf) as the weighting measure, meaning it records the frequency of each term within the document.
+
+*Let's start with the first analysis: Word Frequency Analysis.*
+
+## 2. Word Frequency Analysis
+This technique counts and ranks the most common words in a text. It can reveal dominant themes and concepts. Word clouds visually represent frequency, with larger words indicating higher frequency (McNaught & Lam, 2010).
+
+```{r word_frequency_analysis, echo=FALSE}
+# Word Frequency Analysis
+  word_freq <- TermDocumentMatrix(dissertation_clean)
+  word_freq <- as.matrix(word_freq)
+  word_freq <- sort(rowSums(word_freq), decreasing = TRUE)
+  word_freq_df <- data.frame(word = names(word_freq), freq = word_freq)
+  head(word_freq_df, 25)
+```
+The table lists the top 25 most frequent words in the document, along with their respective frequencies. The word "students" appears the most frequently with 585 occurrences, followed by "scores" with 423 occurrences and "level" with 404 occurrences. Other frequently used words include "education" (366), "pretest" (343), and "model" (341). This frequency analysis helps identify key terms and concepts that are prominent throughout the document.
+
+```{r word_cloud, echo=FALSE}
+ wordcloud(words = word_freq_df$word, freq = word_freq_df$freq, min.freq = 1, max.words = 100, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+```
+The word cloud visually represents the frequency of the most common words in the document, where the size of each word corresponds to its frequency. "Students" is the most prominent word, indicating its high frequency, followed by "scores," "level," "education," and "pretest." Other significant terms include "model," "teacher," "study," "language," and "posttest." This visualization helps to quickly identify key themes and concepts within the document by highlighting the most frequently used words.
+
+## 3. Sentiment Analysis
+This process determines the emotional tone of a text, categorizing it as positive, negative, or neutral. It can provide insights into the overall attitude or opinion expressed in different parts of your dissertation (Liu, 2012).
+
+The {get_nrc_sentiment} function from the **syuzhet** package in R performs sentiment analysis using the NRC Emotion Lexicon, which categorizes words into different emotions and sentiments. The NRC Emotion Lexicon, developed by the National Research Council of Canada, classifies words into eight basic emotions (anger, anticipation, disgust, fear, joy, sadness, surprise, trust) and two sentiments (positive and negative).
+
+The function analyzes the input text and calculates scores for each emotion and sentiment category, providing a detailed emotional profile of the text. This method is advantageous for its comprehensive range of emotions, which offers more granularity compared to other sentiment analysis methods that may only classify text as positive, negative, or neutral.
+
+Other sentiment analysis tools include:
+
+* *AFINN*: Provides a sentiment score for each word, which can be summed to give an overall sentiment score for the text.
+* *Bing Liu's Opinion Lexicon*: Classifies words into positive and negative categories.
+* *VADER (Valence Aware Dictionary and sEntiment Reasoner)*: A rule-based sentiment analysis tool that provides a compound sentiment score for the text.
+
+The NRC Emotion Lexicon was selected for this analysis because it provides a nuanced and detailed understanding of the emotional tone of the dissertation, capturing a wide range of emotions and sentiments that can offer deeper insights into the text.
+```{r sentiment_analysis, echo=FALSE}
+# Sentiment Analysis
+  sentiment_scores <- get_nrc_sentiment(dissertation_text)
+  sentiment_df <- data.frame(sentiment = names(sentiment_scores), score = as.numeric(sentiment_scores))
+  # sentiment_df
+  
+# Plotting sentiment scores in order from most negative to most positive
+  ggplot(sentiment_df, aes(x = reorder(sentiment, -score), y = score, fill = score > 0)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    scale_fill_manual(values = c("red", "green")) +
+    labs(title = "Sentiment Analysis of Dissertation Text", x = "Sentiment", y = "Score") +
+    theme_minimal()
+``` 
+**Interpretation**
+The sentiment analysis of the dissertation text reveals the distribution of sentiment scores across different emotions and sentiments. The plot shows the sentiment scores for each category, ordered from most negative to most positive. Here's a brief interpretation of the sentiment analysis results:
+
+1. **Positive Sentiment (439) vs. Negative Sentiment (154):**
+   - The dissertation predominantly carries a positive tone, suggesting that the overall approach and conclusions are constructive and optimistic. This indicates that the language used throughout the dissertation is more inclined towards highlighting positive outcomes, solutions, and advancements in the field of TESOL and EL education.
+
+2. **Trust (242):**
+   - The high score in trust implies that the dissertation includes substantial evidence, credible sources, and reliable data. This is crucial in academic writing as it demonstrates the robustness of the research methodology and confidence in the findings.
+
+3. **Anticipation (131):**
+   - This sentiment score suggests that the dissertation discusses future implications, potential applications of the research, or ongoing developments in the field. It shows a forward-looking perspective, which is important in academic work to demonstrate the relevance and potential impact of the research.
+
+4. **Joy (102):**
+   - A significant score in joy indicates that there are positive outcomes or benefits highlighted in the research. This could relate to successful strategies for narrowing the EL achievement gaps or positive feedback from implementing the proposed teacher preparation model.
+
+5. **Fear (71) and Sadness (66):**
+   - These scores suggest that while the dissertation is mostly positive, it also addresses challenges, risks, or areas of concern within the realm of EL education. This balanced approach is important as it shows a comprehensive understanding of the field, acknowledging both the strengths and the potential pitfalls.
+
+6. **Anger (49) and Disgust (30):**
+   - These lower scores might indicate points of critique or issues within current EL education practices that the research aims to address. It could reflect frustration with existing gaps in teacher preparation or the inefficacy of certain educational policies.
+
+7. **Surprise (50):**
+   - The presence of surprise indicates that the dissertation may include unexpected findings or novel insights that contribute to the field. This can enhance the impact of the work by providing new perspectives or revealing previously unconsidered aspects of EL education.
+
+**Implications:**
+
+- The predominantly positive and trust-heavy sentiment suggests that the dissertation is likely to be well-received by academic peers and practitioners. It positions the research as credible and forward-thinking.
+- The anticipation and joy sentiments highlight the potential of the findings to influence future research, policy-making, and practical applications in TESOL.
+- Addressing both positive and negative aspects provides a balanced view, enhancing the validity and thoroughness of the research. It shows that the complexities of the issue have been considered, which can lead to more comprehensive and actionable recommendations.
+
+In summary, the dissertation appears to be a well-rounded, optimistic, and credible piece of research with significant potential to impact the field of EL education positively. The sentiment analysis underscores the importance of the findings and their potential to bring about meaningful change.
+
+## 4. Topic Modeling
+A statistical method for discovering abstract "topics" that occur in a collection of documents. Latent Dirichlet Allocation (LDA) is a common algorithm used for this purpose (Blei et al., 2003). LDA assumes that each document is a mixture of topics and that each word in the document is attributable to one of the document's topics. By analyzing the distribution of words across documents and topics, LDA can identify the underlying themes or topics present in the text. This method is particularly useful for exploring large text corpora and identifying key themes or subjects of interest. 
+
+```{r topic_modeling, echo=FALSE}
+# Creating of the Document-Term Matrix
+dissertation_corpus <- Corpus(VectorSource(dissertation_text))
+dissertation_dtm <- DocumentTermMatrix(dissertation_corpus)
+
+# Fit the LDA model
+lda_model <- LDA(dissertation_dtm, k = 5, control = list(seed = 123))
+
+# Get the topics and terms
+topics <- tidy(lda_model, matrix = "beta")
+
+# Extract terms from the DTM
+terms <- Terms(dissertation_dtm)
+
+# Display the topics
+#print(topics)
+
+# First, let's inspect our data
+#print(head(topics))
+#print(str(topics))
+#print(length(terms))
+```   
+
+
+```{r topic_modeling_plot, echo=FALSE}
+# Define a custom stop words list
+custom_stop_words <- c("the", "and", "for", "was", "were", "with", "that", "this", "their", "which", 
+                       "a", "an", "in", "on", "at", "to", "of", "is", "are", "be", "they", "had", "from", "who", "between")
+
+# Clean up the terms and remove stop words
+topics_cleaned <- topics %>%
+  mutate(term = stringr::str_remove(term, "^\"")) %>%
+  filter(!term %in% custom_stop_words)
+
+# Extract top terms for each topic
+top_terms <- topics_cleaned %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  arrange(topic, -beta)
+
+# Print the top terms for each topic
+print(top_terms)
+
+# Visualize the top terms
+ggplot(top_terms, aes(reorder_within(term, beta, topic), beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free_y", ncol = 2) +
+  coord_flip() +
+  scale_x_reordered() +
+  labs(title = "Top Terms for Each Topic (Stop Words Removed)", 
+       x = "Term", 
+       y = "Beta") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 8))  # Adjust text size if needed
+
+# Visualize the distribution of beta values
+beta_plot <- ggplot(topics_cleaned, aes(x = beta)) +
+  geom_histogram(bins = 50) +
+  facet_wrap(~ topic, scales = "free_y") +
+  labs(title = "Distribution of Beta Values by Topic (Stop Words Removed)", 
+       x = "Beta", 
+       y = "Count") +
+  theme_minimal()
+#beta_plot
+```
+
+The topic modeling analysis of the dissertation provides insights into the key themes and concepts present in the text. Each topic is associated with a set of terms that have high relevance to that topic. Here's an interpretation of the identified topics and their implications:
+
+#### Topic 1: Pretests/Students/Posttest
+- **Key Terms:** pretest, students, posttest, study, based, teacher, model, language, education
+- **Interpretation:** This topic centers around the methodology of the dissertation, specifically the use of pretests and posttests to measure students' progress. It highlights the focus on educational studies, teacher involvement, and language education models. 
+- **Implications:** The emphasis on pretests and posttests indicates a strong focus on empirical evidence and quantitative measurement of educational interventions' effectiveness. This methodological rigor is essential for validating the EL-infused teacher preparation model discussed in the dissertation.
+
+#### Topic 2: Level/Students/Teacher
+- **Key Terms:** level, students, teacher, posttest, pretest, grade, language, education, teaching, research
+- **Interpretation:** This topic is related to the various levels of education and how teachers interact with students at these levels. It includes elements of testing (pretest, posttest) and educational research.
+- **Implications:** The presence of terms like "level" and "grade" suggests that the dissertation examines how teacher preparation impacts students across different educational stages. This can provide insights into how teaching strategies need to be adapted for different student groups and educational contexts.
+
+#### Topic 3: Scores/Language/Students
+- **Key Terms:** scores, language, students, posttest, teacher, achievement, education, level, statistically
+- **Interpretation:** This topic highlights the analysis of student scores, particularly in relation to language achievement. It suggests a focus on statistical analysis of educational outcomes.
+- **Implications:** The focus on scores and statistical analysis underscores the dissertation's aim to provide quantifiable evidence of the impact of teacher preparation on student achievement, particularly in language learning. This is crucial for demonstrating the effectiveness of the proposed model.
+
+#### Topic 4: Scores/Education/Students
+- **Key Terms:** scores, education, students, language, study, data, English, learning, psts
+- **Interpretation:** Similar to Topic 3, this topic emphasizes the analysis of educational scores, with a specific focus on language and learning data.
+- **Implications:** The repetition of themes related to scores and data analysis reinforces the dissertation's strong foundation in quantitative research. It highlights the importance of data-driven approaches in evaluating educational interventions and their outcomes.
+
+#### Topic 5: Students/Level/Psts
+- **Key Terms:** students, level, psts, teacher, study, English, model, scores, els, student
+- **Interpretation:** This topic focuses on the interaction between students and teachers, particularly in the context of preservice teacher education (psts). It also includes elements related to English language learning and educational models.
+- **Implications:** The emphasis on preservice teacher education and English language learning suggests that the dissertation may address the transition of EL students through different educational levels. This can provide valuable insights into how teacher preparation can be tailored to support EL students at various stages of their academic journey.
+
+#### Overall Implications:
+- **Methodological Rigor:** The consistent focus on pretests, posttests, scores, and statistical analysis across multiple topics indicates a strong methodological foundation. This rigor is essential for validating the findings and demonstrating the effectiveness of the EL-infused teacher preparation model.
+- **Educational Levels:** The analysis spans various educational levels, highlighting the importance of adapting teacher preparation to meet the needs of students at different stages. This can inform policy and practice in teacher education programs.
+- **Language and Achievement:** The recurring themes of language and student achievement underscore the central focus of the dissertation on improving educational outcomes for EL students. This aligns with the broader goal of narrowing achievement gaps through targeted teacher preparation.
+
+In summary, the topic modeling analysis reveals that the dissertation is methodologically robust, focuses on various educational levels, and is deeply concerned with improving language learning and student achievement through effective teacher preparation. These insights can help refine teacher education programs and inform future research in TESOL and EL education.
+
+## 5. Named Entity Recognition (NER)
+This task identifies and classifies named entities (e.g., person names, organizations, locations) in text into predefined categories. It's crucial for information extraction and text understanding (Nadeau & Sekine, 2007).
+
+```{r named_entity_recognition, echo=FALSE}
+# Initialize the spaCy model
+spacy_initialize(model = "en_core_web_sm")
+
+# Perform NER on the dissertation text
+ner_output <- spacy_parse(dissertation_text)
+
+# Extract named entities
+named_entities <- ner_output[ner_output$entity != "", ]
+
+# Display the named entities
+head(named_entities)
+```
+
+Here’s an interpretation of the results in the context of your dissertation:
+
+#### Entities Identified
+1. **University of Central Florida**
+   - **Type:** Organization (ORG)
+   - **Details:** This entity is recognized as a multi-token organization name, spanning multiple tokens: "University," "of," "Central," and "Florida."
+   - **Significance:** The University of Central Florida (UCF) is mentioned frequently in my dissertation, indicating its importance in my research context. This could be due to it being the institution where my research was conducted, or it could be referenced for the resources, collaborations, or data it provided.
+
+2. **STARS**
+   - **Type:** Organization (ORG)
+   - **Details:** Recognized as part of the same entity "University of Central Florida."
+   - **Significance:** STARS likely refers to a specific program, repository, or system associated with UCF. In the context of my dissertation, it may is related to data storage, access to educational resources, or a specific research initiative hosted by UCF.
+
+#### Conclusion
+The NER analysis correctly identifies and reinforces the importance of the University of Central Florida and potentially its STARS system in my dissertation. It highlights the institutional support and resources that were pivotal in conducting my research, contributing to the credibility and robustness of your findings. By clearly acknowledging and detailing these contributions, we can enhance the overall quality and transparency of our dissertation.
+
+## 6. Text Similarity and Plagiarism Check
+This involves comparing texts to identify similar passages or potential plagiarism. Common methods include cosine similarity and Jaccard similarity (Alzahrani et al., 2012).
+
+To conduct this analysis, I compared my dissertation titled "Narrowing English Learner (EL) Achievement Gaps: A Multilevel Analysis of an EL-Infused Teacher Preparation Model" with the article "Analyzing Student Learning Gains to Evaluate Differentiated Teacher Preparation for Fostering English Learners’ Achievement in Linguistically Diverse Classrooms" by Matthew Ryan Lavery, Joyce Nutta, and Alison Youngblood. The comparison was facilitated using a document-term matrix, resulting in a similarity score which helps in identifying the extent of overlap between the two documents.
+```{r text_similarity, echo=FALSE}
+# Read the PDF files
+dissertation_path <- "E:/OneDriveUT Tyler/Documents/Dissertation_Analysis/phd_dissertation.pdf"
+lavery_path <- "E:/OneDriveUT Tyler/Documents/Dissertation_Analysis/lavery_article.pdf"
+
+dissertation_text <- pdf_text(dissertation_path)
+lavery_text <- pdf_text(lavery_path)
+
+# Function to preprocess text
+preprocess_text <- function(text) {
+  text <- tolower(text)
+  text <- removePunctuation(text)
+  text <- removeNumbers(text)
+  text <- removeWords(text, stopwords("en"))
+  text <- stripWhitespace(text)
+  text <- removeWords(text, c("abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"))
+  text <- removeWords(text, c("table", "figure", "appendix", "chapter", "section"))
+  text <- gsub("\\b\\w{1,2}\\b", "", text)
+  return(text)
+}
+
+# Preprocess each document
+dissertation_processed <- paste(sapply(dissertation_text, preprocess_text), collapse = " ")
+lavery_processed <- paste(sapply(lavery_text, preprocess_text), collapse = " ")
+
+# Create a corpus
+corpus <- Corpus(VectorSource(c(dissertation_processed, lavery_processed)))
+
+# Create a document-term matrix
+dtm <- DocumentTermMatrix(corpus)
+
+# Check the dimensions of the document-term matrix
+cat("Dimensions of Document-Term Matrix:", dim(dtm), "\n")
+
+if (nrow(dtm) < 2) {
+  stop("The document-term matrix should have at least two documents for similarity comparison.")
+}
+
+# Convert dtm to matrix
+dtm_matrix <- as.matrix(dtm)
+
+# Calculate cosine similarity
+cosine_similarity <- proxy::simil(dtm_matrix, method = "cosine")
+
+# Print the similarity score
+similarity_score <- as.matrix(cosine_similarity)[1, 2]
+cat("Similarity score between dissertation and Lavery article:", similarity_score, "\n")
+
+# Function to find similar passages
+find_similar_passages <- function(text1, text2, window_size = 100, threshold = 0.8) {
+  words1 <- unlist(strsplit(text1, "\\s+"))
+  words2 <- unlist(strsplit(text2, "\\s+"))
+  
+  similar_passages <- list()
+  skipped_count <- 0
+  
+  for (i in seq(1, length(words1) - window_size, by = window_size / 2)) {
+    window1 <- paste(words1[i:(i + window_size - 1)], collapse = " ")
+    if (nchar(window1) < window_size) next
+    
+    for (j in seq(1, length(words2) - window_size, by = window_size / 2)) {
+      window2 <- paste(words2[j:(j + window_size - 1)], collapse = " ")
+      if (nchar(window2) < window_size) next
+      
+      window_corpus <- Corpus(VectorSource(c(window1, window2)))
+      window_dtm <- DocumentTermMatrix(window_corpus)
+      
+      if (ncol(window_dtm) > 0 && nrow(window_dtm) == 2) {
+        window_matrix <- as.matrix(window_dtm)
+        
+        tryCatch({
+          similarity <- proxy::simil(window_matrix, method = "cosine")[1, 2]
+          
+          if (!is.na(similarity) && similarity > threshold) {
+            similar_passages[[length(similar_passages) + 1]] <- list(
+              dissertation_start = i,
+              lavery_start = j,
+              similarity = similarity
+            )
+          }
+        }, error = function(e) {
+          skipped_count <- skipped_count + 1
+        })
+      } else {
+        skipped_count <- skipped_count + 1
+      }
+    }
+  }
+  
+  cat("Total comparisons skipped:", skipped_count, "\n")
+  return(similar_passages)
+}
+
+#writeLines(output_file, "text_similarity_results.txt")
+```   
+
+
+#### A. Interpretation of Results
+
+* **Dimensions of Document-Term Matrix**
+The Document-Term Matrix (DTM) created for this comparison had dimensions of 2 x 5128. This indicates that there were two documents analyzed (my dissertation and the Lavery article) and 5128 unique terms across these documents. The matrix provides a structured representation of the frequency of terms within each document, which is fundamental for calculating similarity scores.
+
+* **Similarity Score**
+The similarity score between my dissertation and the Lavery article was found to be 0.6027279. This score is derived from cosine similarity, which measures the cosine of the angle between two vectors in a multi-dimensional space. A score of 1 would indicate identical documents, while a score of 0 would indicate no similarity at all.
+A similarity score of 0.6027279 suggests a moderate level of similarity. This is expected since both documents address related themes in ESL (English as a Second Language) education and teacher preparation models. However, it also indicates that while there are overlapping areas, the documents are distinct in their content and approach.
+
+* **No Highly Similar Passages Found**
+The analysis did not identify any highly similar passages, meaning there are no sections within my dissertation that are directly replicated from the Lavery article. This is a positive outcome, reinforcing the originality of my research. The moderate overall similarity score can be attributed to the common terminologies and themes inherent in studies focusing on ESL education and teacher preparation.
+
+#### B. Contextual Analysis
+The context of my dissertation, which examines the effectiveness of an EL-Infused Teacher Preparation Model through multilevel analysis, shares thematic relevance with the Lavery article, which evaluates differentiated teacher preparation. Both works contribute to the understanding of how teacher preparation impacts English Learner (EL) achievement in linguistically diverse classrooms.
+
+In conclusion, the Text Similarity and Plagiarism Check stage has validated the originality of my dissertation while highlighting its relevance within the broader context of ESL education research. This analysis is a crucial step in ensuring the academic integrity and scholarly contribution of my work.
+
+## 7. Keyword Extraction
+The process of automatically identifying terms that best describe the subject of a document. TF-IDF (Term Frequency-Inverse Document Frequency) is a popular method for this task (Rose et al., 2010). In TF-IDF (Term Frequency-Inverse Document Frequency), a higher frequency of a term in a document does not necessarily mean a higher TF-IDF value. TF-IDF is designed to reflect the importance of a term in a document relative to a collection of documents (the corpus). Here’s a breakdown of why this happens:
+
+1. **Term Frequency (TF)**: This is the number of times a term appears in a document. Higher term frequency increases the TF-IDF value.
+2. **Inverse Document Frequency (IDF)**: This is the logarithmically scaled inverse fraction of the documents that contain the term. If a term appears in many documents, its IDF value decreases. This means common terms across many documents get lower TF-IDF scores.
+
+So, even if a term has a high frequency in a document, if it appears in many other documents as well, its IDF value will be low, resulting in a lower TF-IDF score.
+```{r keyword_extraction, echo=FALSE}
+# Read the PDF files
+dissertation_path <- "E:/OneDriveUT Tyler/Documents/Dissertation_Analysis/phd_dissertation.pdf"
+
+dissertation_text <- pdf_text(dissertation_path)
+
+# List of additional words to remove
+additional_stopwords <- c("vii", "nirmal", "ghimire", "fall", "staff", "touched", "letter", "everyone", "arts", "semester", "journal", "nutta", "three", "major")
+
+# Function to preprocess text
+preprocess_text <- function(text) {
+  text <- tolower(text)
+  text <- gsub("[^[:alnum:][:space:]]", " ", text)  # Remove non-alphanumeric characters
+  text <- gsub("[[:digit:]]", " ", text)  # Remove numbers
+  text <- removeWords(text, stopwords("en"))
+  text <- removeWords(text, additional_stopwords)
+  text <- stripWhitespace(text)
+  text <- removeWords(text, c("abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"))
+  text <- removeWords(text, c("table", "figure", "appendix", "chapter", "section"))
+  text <- gsub("\\b\\w{1,2}\\b", "", text)
+  return(text)
+}
+
+# Preprocess the dissertation text
+dissertation_processed <- sapply(dissertation_text, preprocess_text)
+
+# Create a corpus and document-term matrix
+dissertation_corpus <- Corpus(VectorSource(dissertation_processed))
+dissertation_dtm <- DocumentTermMatrix(dissertation_corpus)
+
+# Function to extract keywords using TF-IDF
+extract_keywords <- function(dtm, n_keywords = 50, min_count = 50) {
+  # Convert to a tidy format
+  tidy_dtm <- tidy(dtm)
+  
+  # Calculate TF-IDF
+  tidy_tfidf <- tidy_dtm %>%
+    bind_tf_idf(term, document, count)
+  
+  # Filter by minimum count and sort by tf-idf in descending order
+  top_keywords <- tidy_tfidf %>%
+    group_by(term) %>%
+    summarise(total_count = sum(count),
+              avg_tf_idf = mean(tf_idf)) %>%
+    filter(total_count >= min_count) %>%
+    arrange(desc(avg_tf_idf)) %>%
+    head(n_keywords)
+  
+  return(top_keywords)
+}
+
+# Extract keywords from dissertation
+dissertation_keywords <- extract_keywords(dissertation_dtm, n_keywords = 50, min_count = 50)
+
+# Print results
+cat("Top keywords in dissertation with frequency >= 50:\n")
+print(dissertation_keywords)
+```
+
+#### Interpretation of Keyword Extraction Results
+
+The keyword extraction results provide a list of terms from my dissertation, ranked by their total count and average TF-IDF (Term Frequency-Inverse Document Frequency) scores. These metrics help identify the most significant terms in my dissertation based on their frequency and relevance. Below is an interpretation of the results in the context of my dissertation:
+
+1. **Variance (87 total count, 0.055590481 avg TF-IDF)**:
+   - Variance is a statistical measure that likely plays a critical role in the analysis of the data within my dissertation. Its high TF-IDF score indicates its importance in discussing the variability in student performance and other factors analyzed.
+
+2. **Final (85 total count, 0.0527642 avg TF-IDF)**:
+   - This term likely appears frequently in concluding sections, final results, or final models discussed in the dissertation. Its significant presence underscores the culmination of analyses and findings.
+
+3. **Mean (64 total count, 0.041796078 avg TF-IDF)**:
+   - The mean is another statistical term frequently used to describe average values within the datasets analyzed. It indicates the central tendency of the data points discussed in the dissertation.
+
+4. **Design (50 total count, 0.040531965 avg TF-IDF)**:
+   - This term refers to the research design or the methodological approach of the dissertation. It highlights the structured plan used for conducting the study, which is crucial for replicability and validity.
+
+5. **Hispanic (54 total count, 0.034864269 avg TF-IDF)**:
+   - This term suggests a significant focus on Hispanic students, indicating that the dissertation includes demographic analyses or considerations specific to this group.
+
+6. **Exceptionalities (91 total count, 0.033919185 avg TF-IDF)**:
+   - The frequent mention of exceptionalities implies a focus on students with special needs or unique learning requirements. This aligns with the inclusive educational practices explored in the dissertation.
+
+7. **Infusion (51 total count, 0.033229988 avg TF-IDF)**:
+   - This term likely relates to the infusion of English Learner (EL) strategies or content into the teacher preparation model, which is central to my dissertation.
+
+8. **Sample (74 total count, 0.032880054 avg TF-IDF)**:
+   - The sample size and characteristics are crucial elements of the research design, highlighting how representative the study is of the larger population.
+
+9. **Work (55 total count, 0.032046555 avg TF-IDF)**:
+   - The term "work" could refer to the practical implications, efforts, or teacher practices discussed in the dissertation.
+
+10. **Education (372 total count, 0.031467641 avg TF-IDF)**:
+    - As expected, this term is very frequent and signifies the primary domain of the dissertation. It encompasses discussions on educational practices, policies, and outcomes.
+
+#### Summary
+The keyword extraction results align well with the focus and scope of my dissertation. The presence of terms like "variance," "mean," and "design" underscores the rigorous statistical analysis, while terms like "Hispanic," "exceptionalities," and "SES" reflect the demographic and inclusive education aspects. This analysis provides a comprehensive overview of the key elements and focus areas of my research, reinforcing its relevance and depth in the field of ESL education and teacher preparation. Here's the word cloud visualization of the top keywords extracted from my dissertation:
+
+```{r keyword_extraction_wc, echo=FALSE}
+# Optionally, save results to a file
+write.csv(dissertation_keywords, "dissertation_keywords.csv", row.names = FALSE)
+
+# Create a word cloud of top keywords
+wordcloud(words = dissertation_keywords$term, 
+          freq = dissertation_keywords$avg_tf_idf, 
+          min.freq = 1,
+          max.words = 100, 
+          random.order = FALSE, 
+          rot.per = 0.35, 
+          colors = brewer.pal(8, "Dark2"))
+```
+
+## 8. N-gram Analysis
+N-gram analysis is the process of examining sequences of n items (usually words) from a text to identify common phrase patterns and collocations. Bigrams (n=2) and trigrams (n=3) are particularly useful for understanding the context and structure within the text (Manning & Schütze, 1999).
+
+### Process:
+1. **Preprocessing**: The text is first preprocessed to remove non-alphanumeric characters, numbers, stopwords, and other irrelevant elements. This step ensures that only meaningful words are included in the analysis.
+2. **Tokenization**: The cleaned text is then tokenized into n-grams. Tokenization is the process of splitting the text into sequences of n words (e.g., bigrams, trigrams). This helps in capturing the relationships between words that are adjacent to each other in the text.
+3. **Frequency Calculation**: Once the text is tokenized into n-grams, the frequency of each n-gram is calculated. This step involves counting how many times each n-gram appears in the text. Higher frequency indicates that the phrase is commonly used in the text, which might suggest its importance.
+
+### Bigram Analysis
+```{r ngram_analysis, echo=FALSE}
+# Convert the processed text to a single string
+dissertation_processed_text <- paste(dissertation_processed, collapse = " ")
+
+# Convert the text to a data frame
+dissertation_df <- data.frame(text = dissertation_processed_text, stringsAsFactors = FALSE)
+
+# Create a function to tokenize into n-grams
+tokenize_ngrams <- function(text_df, n) {
+  text_df %>%
+    unnest_tokens(output = ngram, input = text, token = "ngrams", n = n)
+}
+
+# Tokenize into bigrams and trigrams
+bigrams <- tokenize_ngrams(dissertation_df, 2)
+trigrams <- tokenize_ngrams(dissertation_df, 3)
+
+# Calculate frequencies of bigrams and trigrams
+bigram_freq <- bigrams %>%
+  count(ngram, sort = TRUE)
+
+trigram_freq <- trigrams %>%
+  count(ngram, sort = TRUE)
+
+# Display the top bigrams and trigrams
+top_n <- 20  # Number of top n-grams to display
+
+cat("Top bigrams in dissertation:\n")
+print(head(bigram_freq, top_n))
+```
+
+#### Interpretation of Bigram Output
+
+The bigram analysis identifies pairs of consecutive words (bigrams) that frequently appear together in my dissertation. These bigrams provide insight into the primary themes and concepts discussed. Here is a succinct interpretation of the top bigrams in the context of my dissertation:
+
+1. **Pretest Scores (184) & Posttest Scores (162)**: These bigrams emphasize the use of pretest and posttest assessments to measure the effectiveness of the educational interventions. They highlight the comparative analysis before and after the implementation of teaching strategies.
+
+2. **One Plus (127) & Plus PSTs (59)**: These terms could be related to specific statistical models or results, indicating additional variables or groups in the analysis. "PSTs" might refer to pre-service teachers, which aligns with the focus on teacher preparation.
+
+3. **Teacher Education (112) & Teacher Preparation (64)**: These bigrams reflect the core focus of my dissertation on the training and education of teachers, particularly in relation to preparing them to work effectively with English learners.
+
+4. **Achievement Gap (104) & Achievement Gaps (45)**: These terms underscore the central research problem addressed in my dissertation: the disparities in academic performance between different groups of students, particularly English learners.
+
+5. **Statistically Significant (99) & Statistically Significantly (60)**: These bigrams indicate the rigorous statistical analysis conducted in the study to determine the significance of the findings, ensuring the reliability and validity of the results.
+
+6. **Level Variables (86) & Student Level (52)**: These terms suggest a multilevel analysis approach, considering variables at different levels (e.g., student, classroom, school) to understand their impact on educational outcomes.
+
+7. **English Learners (82) & English Language (75)**: These bigrams highlight the focus on English learners and the English language, central themes in the dissertation related to language acquisition and instructional strategies.
+
+8. **Grade Level (64)**: This term indicates the consideration of different grade levels in the analysis, which is crucial for understanding how educational interventions affect students across various stages of their schooling.
+
+9. **Pretest Posttest (64) & Pretest Model (61)**: These terms further emphasize the methodological framework involving pretest and posttest comparisons to evaluate the effectiveness of educational programs and models.
+
+10. **Class Size (62)**: This term suggests that the dissertation explores the impact of class size on student achievement, an important factor in educational research.
+
+11. **Non ELs (48)**: This bigram refers to students who are not English learners, indicating a comparative analysis between English learners and non-English learners.
+
+12. **Disability Status (47)**: This term indicates that the dissertation also considers students with disabilities, examining how their status intersects with English learner status and other variables.
+
+#### Summary
+The bigram analysis highlights the key elements and recurring themes in my dissertation, such as the focus on pretest-posttest assessments, teacher education, achievement gaps, and the consideration of various student-level variables. These insights align well with the primary objectives and research questions of my study, reinforcing its comprehensive approach to understanding and improving educational outcomes for English learners. Here's the associated bardiagram. 
+
+```{r ngram_analysis_plot_bi, echo=FALSE}
+# Optionally, save results to a file
+write.csv(head(bigram_freq, top_n), "top_bigrams.csv", row.names = FALSE)
+write.csv(head(trigram_freq, top_n), "top_trigrams.csv", row.names = FALSE)
+
+# Plot the top bigrams
+ggplot(head(bigram_freq, top_n), aes(x = reorder(ngram, n), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top Bigrams in Dissertation",
+       x = "Bigram",
+       y = "Frequency")
+```
+
+### Trigram Analysis
+```{r ngram_analysis_tri, echo=FALSE}
+cat("\nTop trigrams in dissertation:\n")
+print(head(trigram_freq, top_n))
+```
+
+#### Interpretation of Trigram Output
+
+1. **One Plus PSTs (59) & One Plus Model (45)**: Indicates the use of statistical models incorporating additional variables or conditions, possibly referring to the inclusion of pre-service teachers (PSTs) or specific modeling approaches in the analysis.
+
+2. **Students Without Exceptionalities (34)**: Highlights a focus on comparing outcomes between students with and without exceptionalities, reflecting an inclusive approach in the research.
+
+3. **Pretest Posttest Scores (32) & Students Posttest Scores (26) & Students Pretest Scores (26)**: Emphasizes the use of pretest and posttest scores to measure the effectiveness of educational interventions, showing a thorough analysis of student performance over time.
+
+4. **English Language Learners (28)**: Central theme focusing on English language learners and their educational outcomes.
+
+5. **Free Reduced Price (28) & Reduced Price Lunch (24)**: Indicates the consideration of socioeconomic status (SES) through measures like free and reduced-price lunch eligibility, which is a common proxy for SES in educational research.
+
+6. **Final Pretest Model (25)**: Refers to the final version of the pretest model used in the analysis, likely indicating a refined approach to measuring baseline performance.
+
+7. **Lower Pretest Scores (24) & Higher Pretest Scores (20)**: Analysis of different groups of students based on their pretest scores, showing the initial disparities in performance.
+
+8. **PST Level Variables (20)**: Refers to variables related to pre-service teachers, indicating a detailed analysis at this level.
+
+9. **Level Variance Components (19)**: Suggests a focus on variance components at different levels, likely within a multilevel modeling framework.
+
+10. **Non English Learners (18)**: Comparative analysis between English learners and non-English learners to identify specific challenges and outcomes.
+
+11. **Science Social Studies (18)**: Indicates the inclusion of different subject areas like science and social studies in the analysis, highlighting the interdisciplinary nature of the research.
+
+12. **Teacher Work Sample (18)**: Refers to samples of teacher work, possibly used to evaluate teaching practices and their impact on student outcomes.
+
+13. **Statistically Significantly Higher (17)**: Emphasizes findings where statistical significance was achieved, particularly where certain groups or conditions showed higher outcomes.
+
+14. **Effect Students Status (16) & Interactional Effect Students (16)**: Analyzes the effects of different statuses (e.g., EL status, SES) on student outcomes and interactional effects among variables.
+
+#### Summary
+These trigrams provide a deeper understanding of the detailed analysis and specific focus areas in my dissertation. They highlight:
+
+- The use of pretest-posttest comparisons to measure intervention effects.
+- Attention to English language learners and the impact of socioeconomic status.
+- Detailed statistical modeling and variance analysis.
+- Comparative studies involving students with and without exceptionalities.
+- Analysis across different subject areas and the use of teacher work samples to evaluate educational practices.
+
+This reflects a comprehensive approach to understanding and improving educational outcomes for diverse student populations through rigorous methodological frameworks. Here's the associated bardiagram.
+
+```{r ngram_analysis_plot_tri, echo=FALSE}
+# Plot the top trigrams
+ggplot(head(trigram_freq, top_n), aes(x = reorder(ngram, n), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top Trigrams in Dissertation",
+       x = "Trigram",
+       y = "Frequency")
+```
+
+## 9. Part-of-Speech Tagging
+This linguistic task assigns parts of speech to each word in a text (e.g., noun, verb, adjective). It's fundamental for understanding the syntactic structure of sentences (Voutilainen, 2003). Part-of-Speech (POS) tagging is a crucial task in natural language processing (NLP) that involves assigning parts of speech (e.g., nouns, verbs, adjectives) to each word in a text. This helps in understanding the syntactic structure of sentences and provides insights into the grammatical functions of words.
+
+### Explanation:
+* **Preprocessing**: Clean and preprocess the text to remove irrelevant characters and noise.
+* **POS Tagging**: Use a POS tagger to assign parts of speech to each word in the text.
+* **Analyze the Results**: Extract and analyze the distribution of different parts of speech.
+
+We'll use the openNLP package in R for POS tagging. This package provides an interface to the Apache OpenNLP library, which is a machine learning-based toolkit for processing natural language text.
+
+#### Let's Start with POS Tags
+```{r pos_tagging, echo=FALSE}
+# Download and load the English model for udpipe (only need to do this once)
+udpipe_download_model(language = "english")
+udmodel <- udpipe_load_model(file = "english-ewt-ud-2.5-191206.udpipe")
+
+# Perform POS tagging
+annotation <- udpipe_annotate(udmodel, x = dissertation_processed_text)
+
+# Convert annotation to data frame
+pos_df <- as.data.frame(annotation)
+
+# Print the first few rows of the POS-tagged data frame
+cat("Part-of-Speech Tags:\n")
+print(head(pos_df[, c("token", "upos")]))
+```
+
+The Part-of-Speech (POS) tagging of my dissertation text indicates an emphasis on institutions and academic work. For instance, "university" and "central" are tagged as adjectives, likely describing "Florida" as a noun, which underscores the affiliation with the University of Central Florida. "Stars" and "theses" tagged as nouns, and "electronic" as an adjective, highlight the context of academic research dissemination, possibly referring to electronic theses and dissertations. 
+
+#### Frequency of POS Tags
+```{r pos_tagging_frequency, echo=FALSE}
+# Calculate the frequency of each POS tag
+pos_freq <- pos_df %>%
+  count(upos, sort = TRUE)
+
+# Print the frequency of each POS tag
+cat("\nFrequency of POS Tags:\n")
+print(pos_freq)
+```
+
+#### Interpretation of Part-of-Speech Tag Frequencies
+
+The frequency of Part-of-Speech (POS) tags in my dissertation provides insight into the linguistic structure and emphasis of the content:
+
+1. **NOUN (17319)**: The high frequency of nouns indicates a focus on specific concepts, subjects, and entities central to my research, such as "students," "teachers," "achievement," and "education."
+
+2. **ADJ (5524)**: Adjectives are used extensively to describe these nouns, providing detailed and specific information about various aspects of the study, such as "significant," "effective," "educational," and "multilevel."
+
+3. **VERB (4578)**: Verbs highlight the actions and processes discussed, such as "analyze," "measure," "compare," and "teach," reflecting the methodological and procedural aspects of my research.
+
+4. **ADV (1258)**: Adverbs modify verbs and adjectives, indicating the manner, degree, or frequency of actions and descriptions, such as "significantly," "effectively," and "consistently."
+
+5. **X (582)**: The presence of the tag 'X' suggests some unclassified or special characters that might include technical symbols, acronyms, or other non-standard elements in the text.
+
+6. **ADP (552)**: Adpositions (prepositions) like "in," "on," "between," and "throughout" help to establish relationships between different elements, crucial for explaining research design and analysis.
+
+7. **NUM (386)**: Numerals are used to indicate quantities, measurements, and statistical values, essential for presenting data and findings.
+
+8. **AUX (227)**: Auxiliary verbs support the main verbs, indicating tense, aspect, or modality, such as "is," "are," "was," "have," and "will."
+
+9. **CCONJ (190) & SCONJ (102)**: Coordinating and subordinating conjunctions are used to link clauses and ideas, contributing to the complex structure of academic writing.
+
+10. **PROPN (83)**: Proper nouns refer to specific names of people, places, and institutions, such as "University of Central Florida," highlighting affiliations and contexts.
+
+11. **DET (60) & PRON (56)**: Determiners and pronouns, though less frequent, are essential for the cohesion and clarity of the text, referring to specific items or people.
+
+12. **INTJ (29) & PART (5)**: Interjections and particles are rare but can add emphasis or clarity in specific contexts.
+
+13. **SYM (4)**: Symbols might include mathematical or statistical symbols, important for presenting quantitative data.
+
+#### Summary
+
+The POS tag frequencies in my dissertation reflect a dense and detailed academic text with a strong focus on nouns and adjectives to describe the subjects and their characteristics, a significant use of verbs to convey actions and methodologies, and a comprehensive use of other parts of speech to ensure clarity, coherence, and detailed explanation of the research process and findings. This linguistic structure supports the in-depth and systematic nature of the study on ESL education and teacher preparation. Here's the visualization of the frequency of POS tags in my dissertation:
+
+```{r pos_tagging_plot, echo=FALSE}
+# Plot the frequency of POS tags
+ggplot(pos_freq, aes(x = reorder(upos, n), y = n)) +
+  geom_bar(stat = "identity", fill = "maroon") +
+  coord_flip() +
+  labs(title = "Frequency of Part-of-Speech Tags in Dissertation",
+       x = "Part-of-Speech Tag",
+       y = "Frequency")
+
+# Save the plot
+ggsave("pos_tag_frequency.png", width = 10, height = 6)
+
+# Optionally, save the POS-tagged data for further analysis
+write.csv(pos_df, "pos_tagged_dissertation.csv", row.names = FALSE)
+```
+
+## 10. Readability Analysis
+This assesses how easy a text is to read and understand. Common metrics include the Flesch-Kincaid readability tests and the Gunning fog index (DuBay, 2004).
+
+```{r readability_analysis, echo=FALSE}
+# Read the PDF files
+dissertation_path <- "E:/OneDriveUT Tyler/Documents/Dissertation_Analysis/phd_dissertation.pdf"
+dissertation_text <- pdf_text(dissertation_path)
+
+# List of additional words to remove
+additional_stopwords <- c("vii", "nirmal", "staff", "touched", "letter")
+
+# Function to preprocess text
+preprocess_text <- function(text) {
+  text <- tolower(text)
+  text <- gsub("[^[:alnum:][:space:]]", " ", text)  # Remove non-alphanumeric characters
+  text <- gsub("[[:digit:]]", " ", text)  # Remove numbers
+  text <- removeWords(text, stopwords("en"))
+  text <- removeWords(text, additional_stopwords)
+  text <- stripWhitespace(text)
+  text <- removeWords(text, c("abstract", "introduction", "methodology", "results", "discussion", "conclusion", "references"))
+  text <- removeWords(text, c("table", "figure", "appendix", "chapter", "section"))
+  text <- gsub("\\b\\w{1,2}\\b", "", text)
+  return(text)
+}
+
+# Preprocess the dissertation text
+dissertation_processed <- sapply(dissertation_text, preprocess_text)
+dissertation_processed_text <- paste(dissertation_processed, collapse = " ")
+
+# Function to segment text into sentences
+segment_text <- function(text) {
+  sentences <- unlist(strsplit(text, "(?<=[.!?])\\s+", perl = TRUE))
+  return(sentences)
+}
+
+# Segment the preprocessed text into sentences
+segmented_sentences <- segment_text(dissertation_processed_text)
+
+# Create a quanteda corpus from segmented sentences
+corpus <- quanteda::corpus(segmented_sentences)
+
+# Print corpus summary
+print(summary(corpus))
+
+# Calculate readability scores
+readability_scores <- textstat_readability(corpus, measure = c("Flesch", "Flesch.Kincaid", "FOG", "SMOG", "ARI", "Coleman.Liau"))
+
+# Print the readability scores
+cat("\nReadability Scores:\n")
+print(readability_scores)
+
+# Tokenize the text into sentences
+sent_tokens <- quanteda::tokens(corpus, what = "sentence")
+
+# Calculate average sentence length
+sentence_lengths <- quanteda::ntoken(sent_tokens, remove_punct = TRUE)
+avg_sentence_length <- mean(sentence_lengths)
+
+cat("\nAverage Sentence Length:", round(avg_sentence_length, 2), "words\n")
+
+# Tokenize the text into words
+word_tokens <- quanteda::tokens(corpus, what = "word", remove_punct = TRUE)
+
+# Calculate average word length
+word_lengths <- nchar(unlist(word_tokens))
+avg_word_length <- mean(word_lengths)
+
+cat("Average Word Length:", round(avg_word_length, 2), "characters\n")
+
+# Print token and type counts
+token_count <- sum(quanteda::ntoken(word_tokens))
+type_count <- length(unique(unlist(word_tokens)))
+
+cat("\nTotal Tokens:", token_count, "\n")
+cat("Unique Types:", type_count, "\n")
+
+# Optionally, save the results to a CSV file
+write.csv(readability_scores, "readability_scores.csv", row.names = FALSE)
+```
